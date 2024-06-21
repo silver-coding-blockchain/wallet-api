@@ -1,0 +1,56 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["lib/**", "lib-es/**"],
+      "inputs": ["src/**/*.ts"]
+    },
+    "lint": {
+      "dependsOn": [],
+      "outputs": []
+    },
+    "lint:fix": {
+      "dependsOn": [],
+      "outputs": []
+    },
+    "format:check": {
+      "outputs": []
+    },
+    "format:fix": {
+      "outputs": []
+    },
+    "dev": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "test": {
+      "dependsOn": ["build", "lint"],
+      "outputs": [],
+      "inputs": ["src/**/*.ts", "test/**/*.ts"]
+    },
+    "@ledgerhq/manifest-validator-cli#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["bin/**"],
+      "inputs": ["src/**/*.ts"]
+    },
+    "@ledgerhq/wallet-api-docs#dev": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
+    "@ledgerhq/wallet-api-docs#build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"],
+      "inputs": ["pages/**", "*.js", "*.ts", "*.tsx", "*.css"]
+    },
+    "@ledgerhq/wallet-api-tools#build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"],
+      "inputs": ["src/**", "app/**", "public/**", "styles/**", "*.js"]
+    },
+    "@ledgerhq/wallet-api-tools#dev": {
+      "dependsOn": ["^build"],
+      "cache": false
+    }
+  }
+}

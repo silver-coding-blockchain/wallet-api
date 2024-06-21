@@ -1,0 +1,67 @@
+name: Create Pull Request to DevPortal's repo
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/docs/pages/docs/discover/*"
+
+jobs:
+  syncAndCreatePR:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.DEVELOPER_PORTAL_CI }}
+
+      - name: Set up Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Sync files to the other repository and create Pull Request
+        env:
+          DEVELOPER_PORTAL_CI_TOKEN: ${{ secrets.DEVELOPER_PORTAL_CI }}
+          SOURCE_REPO_NAME: "wallet-api"
+          SOURCE_REPO: "github.com/LedgerHQ/wallet-api"
+          SOURCE_FILE_PATH_1: "apps/docs/pages/docs/discover"
+          TARGET_REPO_NAME: "developer-portal"
+          TARGET_REPO: "github.com/LedgerHQ/developer-portal"
+          TARGET_FILE_PATH_1: "pages/docs/discover"
+          TARGET_BRANCH: "main"
+          TARGET_PR_API_URL: "https://api.github.com/repos/LedgerHQ/developer-portal/pulls"
+          PR_TITLE: "Merging documentation from wallet-api"
+          PR_COMMIT_MESSAGE: "doc: add new changes from wallet-api doc"
+          PR_REVIEWERS: '{"reviewers": ["cfranceschi-ledger"]}'
+          PR_ASSIGN: '{"assignees": ["ramyeb"]}'
+        run: |
+          git clone --depth 1 https://${DEVELOPER_PORTAL_CI_TOKEN}@${SOURCE_REPO}
+          git clone --depth 1 https://ldg-github-ci:${DEVELOPER_PORTAL_CI_TOKEN}@${TARGET_REPO}
+          PR_BRANCH_NAME=sync-discover-doc-$(date +%d-%m-%H-%M)
+
+          cd ${TARGET_REPO_NAME}
+          git checkout -b ${PR_BRANCH_NAME}
+
+          # Replace files
+          cp -rT ../${SOURCE_REPO_NAME}/${SOURCE_FILE_PATH_1} ${TARGET_FILE_PATH_1}
+
+          # Push changes
+          git add ${TARGET_FILE_PATH_1}
+          git commit -m "${PR_COMMIT_MESSAGE}" || echo "No changes to commit"
+          git push origin ${PR_BRANCH_NAME}
+
+          # Create Pull Request
+          JSON_PAYLOAD="{\"title\":\"${PR_TITLE}-$(date +%d-%m-%H-%M)\",\"head\":\"${PR_BRANCH_NAME}\",\"base\":\"${TARGET_BRANCH}\"}"
+
+          PR_RESPONSE=$(curl -X POST -H "Authorization: token ${DEVELOPER_PORTAL_CI_TOKEN}" -d "$JSON_PAYLOAD" ${TARGET_PR_API_URL})
+
+          PR_URL=$(echo $PR_RESPONSE | jq -r '.url') 
+          PR_ISSUE_URL=$(echo $PR_RESPONSE | jq -r '.issue_url') 
+
+
+          # Assign Reviewers
+          curl -s -X POST -H "Authorization: token ${DEVELOPER_PORTAL_CI_TOKEN}" -d "$PR_REVIEWERS" ${PR_URL}/requested_reviewers
+
+          # Assign Users to the Pull Request
+          curl -s -X POST -H "Authorization: token ${DEVELOPER_PORTAL_CI_TOKEN}" -d "$PR_ASSIGN" ${PR_URL}/assignees

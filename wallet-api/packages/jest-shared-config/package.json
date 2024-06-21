@@ -1,0 +1,10 @@
+{
+  "name": "@ledgerhq/jest-shared-config",
+  "private": true,
+  "version": "0.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
